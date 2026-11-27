@@ -341,6 +341,10 @@ body.no-del .d .ed.dng,body.no-del #selBtn{display:none!important}
 .ps-tbl td.wkc{background:#e0f2fe;font-weight:800;color:#056b80;width:68px}
 .ps-tbl td.dayc{background:#f8fafc;font-weight:700;width:108px;line-height:1.35}
 .ps-tbl td.dayc small{display:block;font-weight:500;color:#475569;font-size:11px;direction:ltr}
+.ps-day{margin-bottom:16px;break-inside:avoid}
+.ps-day-hd{text-align:right;font-size:13.5px;font-weight:800;color:#056b80;background:#e0f2fe;border-right:4px solid #0790AC;padding:5px 10px;border-radius:6px;margin-bottom:6px}
+.ps-tbl tr.ps-band td{background:rgba(7,144,172,.16);color:#056b80;font-weight:800;text-align:right;padding:5px 8px}
+.ps-tbl td.ps-sl{background:#f8fafc;color:#475569;font-weight:600;width:86px}
 @media print{
   body{background:#fff;overflow:visible;padding:0}
   nav,aside,.mh{display:none!important}
@@ -1575,6 +1579,55 @@ function printWeeklyRoster(id){
     <div class="act"><button class="ib pri" onclick="doSheetPrint()">${ic('print')} طباعة الآن</button><button class="ib" onclick="closeM()">إغلاق</button></div>`);
   ov.querySelector('.md').classList.add('wide');
 }
+function buildDailyDistHtml(p,onlyKey){
+  const nm=PROGS.find(c=>c[0]===p.cat)[1];
+  const createdDt=new Date(p.ts||Date.now());
+  const createdStr=ar(`${createdDt.getDate()}-${createdDt.getMonth()+1}-${createdDt.getFullYear()}`);
+  const daysInM=new Date(p.y,p.m+1,0).getDate();
+  const keys=[];
+  if(onlyKey){keys.push(onlyKey)}
+  else{for(let d=1;d<=daysInM;d++)keys.push(dk(new Date(p.y,p.m,d)))}
+  const blocks=keys.map(k=>{
+    const dt=pdate(k),wd=dayName(dt),dtStr=ar(`${dt.getDate()}-${dt.getMonth()+1}-${dt.getFullYear()}`);
+    const L=Lview(p,k),divs=L.divs||[],depts=L.depts||[],nc=divs.length;
+    const tbl=depts.length?`<table class="ps-tbl"><thead><tr><th style="width:110px">القسم / الموضع</th>${divs.map(dv=>`<th dir="ltr">${dLab(dv)}<br><small style="font-weight:500">${fH(dMin(dv))}</small></th>`).join('')}</tr></thead><tbody>`+
+      depts.map(dep=>`<tr class="ps-band"><td colspan="${nc+1}">${esc(dep.name)}</td></tr>`+
+        (dep.rows||[]).map((r,idx)=>`<tr><td class="ps-sl">موضع ${ar(idx+1)}</td>`+divs.map(dv=>{
+          const a=(r.c||{})[dv.id]||'';
+          if(!a||!exists(a))return '<td>—</td>';
+          const lv=onLeave(p,a,k);
+          if(lv&&lv.effType!=='delay'){
+            if(lv.sub&&exists(lv.sub))return `<td>${esc(nameOf(lv.sub))}<br><small style="color:#92400e">(بديل ${esc(nameOf(a))})</small></td>`;
+            return `<td style="color:#b91c1c">${esc(nameOf(a))}<br><small>(${lv.effType==='absence'?'غياب':'إجازة'})</small></td>`;
+          }
+          return `<td><b>${esc(nameOf(a))}</b></td>`;
+        }).join('')+'</tr>').join('')
+      ).join('')+'</tbody></table>'
+      :'<div style="font-size:12px;color:#64748b;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:8px">لا توجد أقسام مضافة لهذا اليوم.</div>';
+    return `<div class="ps-day"><div class="ps-day-hd">${wd} — ${dtStr}</div>${tbl}</div>`;
+  }).join('');
+  return `<div class="ps-box">
+    <div class="ps-hd">
+      <div class="ps-brand"><b>MedBox-HR</b>${S.facilityName?`<span>${esc(S.facilityName)}</span>`:''}</div>
+      <div class="ps-meta"><b>تاريخ إنشاء الجدول:</b> ${createdStr}<br><small>برنامج رقم ${ar(p.no)} (${noteOf(p)})</small></div>
+    </div>
+    <h2 class="ps-title">جدول توزيع المناوبين لـ ${nm} لشهر ${MONTHS[p.m]} ${ar(p.y)} على الأقسام</h2>
+    ${blocks}
+  </div>`;
+}
+function printDailyDist(id,onlyDay){
+  const p=S.programs.find(x=>x.id===id);if(!p)return;
+  const h=buildDailyDistHtml(p,onlyDay?U.pday:null);
+  const ps=document.getElementById('printSheet');if(ps)ps.innerHTML=h;
+  const ov=modal(`<h3>${ic('print')} معاينة طباعة توزيع المناوبين على الأقسام</h3>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="ib sm ${!onlyDay?'pri':''}" onclick="closeM();printDailyDist('${id}',false)">جميع أيام الشهر</button>
+      <button class="ib sm ${onlyDay?'pri':''}" onclick="closeM();printDailyDist('${id}',true)">هذا اليوم فقط (${dlabel(U.pday)})</button>
+    </div>
+    <div style="overflow:auto;max-height:62vh">${h}</div>
+    <div class="act"><button class="ib pri" onclick="doSheetPrint()">${ic('print')} طباعة الآن</button><button class="ib" onclick="closeM()">إغلاق</button></div>`);
+  ov.querySelector('.md').classList.add('wide');
+}
 function doSheetPrint(){
   document.body.classList.add('pr-sheet');
   const done=()=>{document.body.classList.remove('pr-sheet');window.removeEventListener('afterprint',done)};
@@ -1583,7 +1636,8 @@ function doSheetPrint(){
 }
 function progGrid(p){
   const nm=PROGS.find(c=>c[0]===p.cat)[1],T=[['weeks','الأسابيع'],['day','جدول اليوم'],['sum','ملخص الشهر والإجازات']];
-  const prBtn=U.ptab==='weeks'?`<span style="flex:1"></span><button class="ib sm pri" onclick="printWeeklyRoster('${p.id}')">${ic('print')} طباعة جدول المناوبين</button>`:'';
+  const prBtn=U.ptab==='weeks'?`<span style="flex:1"></span><button class="ib sm pri" onclick="printWeeklyRoster('${p.id}')">${ic('print')} طباعة جدول المناوبين</button>`:
+    U.ptab==='day'?`<span style="flex:1"></span><button class="ib sm pri" onclick="printDailyDist('${p.id}',false)">${ic('print')} طباعة توزيع الأقسام</button>`:'';
   return `${U.pedit?'<div class="etag"><span>وضع التعديل</span></div>':''}<div class="blk ${U.pedit?'':'ro'}"><div class="bh">${ic('cal')} برنامج رقم ${ar(p.no)} · ${nm} · ${MONTHS[p.m]} ${ar(p.y)}<em class="bdg">${noteOf(p)}</em><span style="flex:1"></span><button class="ib sm" onclick="closeProg()">${ic('back')} رجوع</button></div>
    <div class="ptabs">${T.map(t=>`<button class="tab ${U.ptab===t[0]?'on':''}" onclick="U.ptab='${t[0]}';render()">${t[1]}</button>`).join('')}${prBtn}</div>`+
    (U.ptab==='day'?dayTab(p):U.ptab==='sum'?sumTab(p):weeksHtml(p))+'</div>';
