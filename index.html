@@ -316,6 +316,15 @@ td.dl{background:#e0f2fe}td.dl select{color:#0369a1;font-weight:700}
 .sup-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 14px 12px;border-top:1px solid rgba(7,144,172,.14);font-size:13px;color:var(--tx)}
 .sup-row select{padding:5px 10px;border-radius:8px;border:1px solid #cbd5e1;font:inherit;font-size:12.5px;background:#fff}
 .ps-sup{text-align:right;font-size:12px;font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #cbd5e1;border-top:0;padding:5px 10px}
+#body.pview{overflow:hidden;padding:10px;gap:0}
+.blk.pblk{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.blk.pblk>.bh,.blk.pblk>.ptabs{flex-shrink:0;position:relative;z-index:4}
+.blk.pblk>.ptabs{background:rgba(255,255,255,.85)}
+.pbody{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column}
+.pbody table.dt thead th{position:sticky;top:0;z-index:3}
+tr.sup-tr td{background:#f0f9ff;text-align:right;padding:7px 12px;font-size:13px;color:var(--tx);border-bottom:2px solid rgba(7,144,172,.28)}
+tr.sup-tr select{width:auto;padding:4px 8px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-size:12.5px;margin-inline:6px;text-align:right;text-align-last:right}
+tr.ps-sup-tr td{background:#f0f9ff;text-align:right;padding:6px 10px;font-size:12px;font-weight:700;color:#0f172a}
 .u-card{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,.8);border:1px solid rgba(7,144,172,.15);border-radius:12px;padding:10px 14px}
 .u-card .u-in{flex:1;min-width:180px}
 .u-perms{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
@@ -1329,7 +1338,12 @@ function goToRecord(id,e){
 function togSide(){const b=document.getElementById('bT'),r1=b.getBoundingClientRect();U.hide=!U.hide;renderSide();
   const r2=b.getBoundingClientRect(),dx=r1.left-r2.left,dy=r1.top-r2.top;
   if(dx||dy){b.style.transition='none';b.style.transform=`translate(${dx}px,${dy}px)`;b.getBoundingClientRect();b.style.transition='transform .4s cubic-bezier(.4,0,.2,1)';b.style.transform=''}}
-function placeT(){const t=document.getElementById('bT'),h=document.getElementById(U.hide?'mh':'sh');if(t.parentNode!==h)h.prepend(t)}
+function placeT(){
+  const t=document.getElementById('bT');if(!t)return;
+  const inPv=U.view==='programs'&&!!U.pv;
+  const h=document.getElementById(U.hide?(inPv?'pbh':'mh'):'sh')||document.getElementById(U.hide?'mh':'sh');
+  if(h&&t.parentNode!==h)h.prepend(t);
+}
 function togSearch(){const sx=document.getElementById('sx'),i=document.getElementById('q'),o=sx.classList.toggle('open');if(o)setTimeout(()=>i.focus(),50);else{i.value='';U.q='';renderSide()}}
 function togSort(e){e.stopPropagation();document.getElementById('scnm').classList.remove('on');const m=document.getElementById('sm');m.innerHTML=SORTS.map(x=>`<button class="${U.sort===x[0]?'on':''}" onclick="U.sort='${x[0]}';renderSide()">${x[1]}</button>`).join('');m.classList.toggle('on')}
 function togScan(e){e.stopPropagation();document.getElementById('sm').classList.remove('on');document.getElementById('scnm').classList.toggle('on')}
@@ -1676,7 +1690,9 @@ function buildDailyDistHtml(p,onlyKey){
   const blocks=keys.map(k=>{
     const dt=pdate(k),wd=dayName(dt),dtStr=ar(`${dt.getDate()}-${dt.getMonth()+1}-${dt.getFullYear()}`);
     const L=Lview(p,k),divs=L.divs||[],depts=L.depts||[],nc=divs.length;
-    const tbl=depts.length?`<table class="ps-tbl"><thead><tr>${divs.map(dv=>`<th dir="ltr">${dLab(dv)}<br><small style="font-weight:500">${fH(dMin(dv))}</small></th>`).join('')}</tr></thead><tbody>`+
+    const sup=shiftSupOf(p,k);
+    const psSupTr=`<tr class="ps-sup-tr"><td colspan="${nc}">مشرف الوردية: ${sup?`${esc(sup.name)}${sup.mobile?' — رقم الموبايل: <span dir="ltr">'+esc(sup.mobile)+'</span>':''}`:'—'}</td></tr>`;
+    const tbl=depts.length?`<table class="ps-tbl"><thead><tr>${divs.map(dv=>`<th dir="ltr">${dLab(dv)}<br><small style="font-weight:500">${fH(dMin(dv))}</small></th>`).join('')}</tr></thead><tbody>`+psSupTr+
       depts.map(dep=>`<tr class="ps-band"><td colspan="${nc}">${esc(dep.name)}</td></tr>`+
         (dep.rows||[]).map(r=>`<tr>`+divs.map(dv=>{
           const a=(r.c||{})[dv.id]||'';
@@ -1690,9 +1706,7 @@ function buildDailyDistHtml(p,onlyKey){
         }).join('')+'</tr>').join('')
       ).join('')+'</tbody></table>'
       :'<div style="font-size:12px;color:#64748b;padding:8px 10px;border:1px dashed #cbd5e1;border-radius:8px">لا توجد أقسام مضافة لهذا اليوم.</div>';
-    const sup=shiftSupOf(p,k);
-    const psSup=`<div class="ps-sup">مشرف الوردية: ${sup?`${esc(sup.name)}${sup.mobile?' — رقم الموبايل: <span dir="ltr">'+esc(sup.mobile)+'</span>':''}`:'—'}</div>`;
-    return `<div class="ps-day"><div class="ps-day-hd">${wd} — ${dtStr}</div>${tbl}${psSup}</div>`;
+    return `<div class="ps-day"><div class="ps-day-hd">${wd} — ${dtStr}</div>${tbl}</div>`;
   }).join('');
   return `<div class="ps-box">
     <div class="ps-hd">
@@ -1726,9 +1740,9 @@ function progGrid(p){
   const nm=PROGS.find(c=>c[0]===p.cat)[1],T=[['weeks','الأسابيع'],['day','جدول اليوم'],['sum','ملخص الشهر والإجازات']];
   const prBtn=U.ptab==='weeks'?`<span style="flex:1"></span><button class="ib sm pri" onclick="printWeeklyRoster('${p.id}')">${ic('print')} طباعة جدول المناوبين</button>`:
     U.ptab==='day'?`<span style="flex:1"></span><button class="ib sm pri" onclick="printDailyDist('${p.id}',false)">${ic('print')} طباعة توزيع الأقسام</button>`:'';
-  return `${U.pedit?'<div class="etag"><span>وضع التعديل</span></div>':''}<div class="blk ${U.pedit?'':'ro'}"><div class="bh">${ic('cal')} برنامج رقم ${ar(p.no)} · ${nm} · ${MONTHS[p.m]} ${ar(p.y)}<em class="bdg">${noteOf(p)}</em><span style="flex:1"></span>${U.pedit?`<button class="ib sm pri" onclick="saveProgEdits()">${ic('check')} حفظ التعديلات</button>`:(can('prog','edit')?`<button class="ib sm pri" onclick="enterProgEdit('${p.id}')">${ic('edit')} تعديل</button>`:'')}<button class="ib sm" onclick="closeProg()">${ic('back')} رجوع</button></div>
-   <div class="ptabs">${T.map(t=>`<button class="tab ${U.ptab===t[0]?'on':''}" onclick="U.ptab='${t[0]}';render()">${t[1]}</button>`).join('')}${prBtn}</div>`+
-   (U.ptab==='day'?dayTab(p):U.ptab==='sum'?sumTab(p):weeksHtml(p))+'</div>';
+  return `${U.pedit?'<div class="etag" style="margin-bottom:-6px"><span>وضع التعديل</span></div>':''}<div class="blk pblk ${U.pedit?'':'ro'}"><div class="bh" id="pbh">${ic('cal')} برنامج رقم ${ar(p.no)} · ${nm} · ${MONTHS[p.m]} ${ar(p.y)}<em class="bdg">${noteOf(p)}</em><span style="flex:1"></span>${U.pedit?`<button class="ib sm pri" onclick="saveProgEdits()">${ic('check')} حفظ التعديلات</button>`:(can('prog','edit')?`<button class="ib sm pri" onclick="enterProgEdit('${p.id}')">${ic('edit')} تعديل</button>`:'')}<button class="ib sm" onclick="closeProg()">${ic('back')} رجوع</button></div>
+   <div class="ptabs">${T.map(t=>`<button class="tab ${U.ptab===t[0]?'on':''}" onclick="U.ptab='${t[0]}';render()">${t[1]}</button>`).join('')}${prBtn}</div>
+   <div class="pbody">${U.ptab==='day'?dayTab(p):U.ptab==='sum'?sumTab(p):weeksHtml(p)}</div></div>`;
 }
 function progBody(){
   if(!U.pc)return `<div class="emp">${ic('cal','big')}<br>اختر برنامج دوام كادر من القائمة الجانبية.</div>`;
@@ -2057,7 +2071,9 @@ function dayTab(P){
    ${hasO?`<em class="bdg">تخصيص لهذا التاريخ</em><button class="ib sm dng edt" onclick="delOvr()">${ic('trash')} إلغاء التخصيص</button>`:''}
    <span style="flex:1"></span><button class="ib sm edt" onclick="divForm()">${ic('gear')} التقسيمات</button><button class="ib sm pri edt" onclick="deptNew()">${ic('plus')} قسم</button><button class="ib sm edt" onclick="copyForm()">${ic('down')} نسخ إلى أيام</button></div>
    <div class="hint">${mode==='all'?`أي تعديل هنا يتكرر تلقائياً على كل أيام ${wd} في الشهر.`:'التعديل يخص هذا التاريخ فقط.'} · مجموع التقسيمات: <b style="color:${tot===1440?'var(--p)':'#b45309'}">${fH(tot)}</b>${tot===1440?'':' (غير مكتمل ٢٤ ساعة)'}</div>`;
-  const tbl=L.depts.length?`<div class="xs"><table class="dt" style="min-width:${150+nc*118}px"><thead><tr><th class="f">القسم / الموضع</th>${L.divs.map(d=>`<th>${dLab(d)}<br><small>${fH(dMin(d))}</small></th>`).join('')}</tr></thead><tbody>`+
+  const sup=shiftSupOf(P,k),supOpts=byName(S.nurses.filter(x=>x.cat===rc));
+  const supTr=`<tr class="sup-tr"><td colspan="${nc+1}"><b>مشرف الوردية:</b> ${U.pedit?`<select onchange="setDaySup(this.value)"><option value="">— تلقائي (${sup?esc(sup.name):'غير محدد'}) —</option>${supOpts.map(x=>`<option value="${x.id}" ${L.sup===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`:''}${sup?`<span class="lnk-n" style="font-weight:700;color:var(--pd)" onclick="goToRecord('${sup.id}',event)">${esc(sup.name)}</span>${sup.mobile?` · <b dir="ltr">${esc(sup.mobile)}</b>`:''}`:'<span style="color:var(--mu)">غير محدد</span>'}</td></tr>`;
+  const tbl=L.depts.length?`<div class="xs"><table class="dt" style="min-width:${150+nc*118}px"><thead><tr><th class="f">القسم / الموضع</th>${L.divs.map(d=>`<th>${dLab(d)}<br><small>${fH(dMin(d))}</small></th>`).join('')}</tr></thead><tbody>`+supTr+
     L.depts.map(dep=>`<tr class="band"><td colspan="${nc+1}"><div class="bd"><span>${esc(dep.name)}</span><span class="bt edt"><button class="ib sm" title="إضافة موضع" onclick="addRow('${dep.id}')">${ic('plus')}</button><button class="ib sm" title="تغيير الاسم" onclick="renDept('${dep.id}')">${ic('edit')}</button><button class="ib sm dng" title="حذف القسم" onclick="delDept('${dep.id}')">${ic('trash')}</button></span></div></td></tr>`+
      dep.rows.map((r,i)=>`<tr><td class="sl">موضع ${ar(i+1)} <button class="rx edt" title="حذف الموضع" onclick="delRow('${dep.id}','${r.id}')">${ic('x')}</button></td>`+L.divs.map(d=>{
        const v=r.c[d.id]||'',bad=v&&occ[d.id+'|'+v]>1,lv=v?onLeave(P,v,k):null;
@@ -2067,9 +2083,7 @@ function dayTab(P){
        return `<td class="${cls}">${cellInner}${lv?`<div class="sn">${snTxt}</div>`:''}</td>`}).join('')+'</tr>').join('')).join('')+'</tbody></table></div>'
     :`<div class="emp">لا توجد أقسام في جدول هذا اليوم.<br><br><button class="ib pri edt" onclick="deptNew()">${ic('plus')} إضافة قسم</button> <button class="ib edt" onclick="addAllDepts()">إضافة أقسام المشفى</button></div>`;
   const R=stats(P),ch=[...new Set([...ros,...Object.keys(R)])].filter(i=>exists(i)&&R[i]&&R[i].daily[k]).map(i=>`<span class="chip lnk-n" onclick="goToRecord('${i}',event)">${esc(nameOf(i))}: <b>${fH(R[i].daily[k])}</b></span>`).join('');
-  const sup=shiftSupOf(P,k),supOpts=byName(S.nurses.filter(x=>x.cat===rc));
-  const supRow=`<div class="sup-row"><b>مشرف الوردية:</b> ${U.pedit?`<select onchange="setDaySup(this.value)"><option value="">— تلقائي (${sup?esc(sup.name):'غير محدد'}) —</option>${supOpts.map(x=>`<option value="${x.id}" ${L.sup===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`:''}${sup?`<span class="lnk-n" style="font-weight:700;color:var(--pd)" onclick="goToRecord('${sup.id}',event)">${esc(sup.name)}</span>${sup.mobile?` · <b dir="ltr">${esc(sup.mobile)}</b>`:''}`:'<span style="color:var(--mu)">غير محدد</span>'}</div>`;
-  return bar+tbl+`<div class="hint" style="padding:10px 14px"><b>ساعات العمل في هذا اليوم:</b> ${ch||'—'}</div>`+supRow;
+  return bar+tbl+`<div class="hint" style="padding:10px 14px"><b>ساعات العمل في هذا اليوم:</b> ${ch||'—'}</div>`;
 }
 function sumTab(P){
   const R=stats(P),rc=recCat(P),ids=new Set(Object.keys(R));
@@ -2111,14 +2125,17 @@ function render(){
   document.querySelector('.row').classList.toggle('hm',v==='home');
   tb.classList.toggle('off',v==='records'||v==='home'||v==='settings');tb.classList.toggle('ph',v==='programs'||v==='leaves'||v==='requests');
   renderSide();
-  document.getElementById('mh').classList.toggle('off',v==='home');document.getElementById('bP').classList.toggle('pri',v==='programs');
+  const inPv=v==='programs'&&!!U.pv;
+  document.getElementById('mh').classList.toggle('off',v==='home'||inPv);
+  document.getElementById('body').classList.toggle('pview',inPv);
+  document.getElementById('bP').classList.toggle('pri',v==='programs');
   if(v==='home'){document.getElementById('body').innerHTML=homeHtml();startHomeTick();return}
   stopHomeTick();
   if(v==='settings'){document.getElementById('body').innerHTML=U.stab==='facility'?facilitySettingsHtml():U.stab==='pass'?passSettingsHtml():U.stab==='users'?usersSettingsHtml():U.stab==='firebase'?fbSettingsHtml():(U.stab==='about'||U.about)?aboutHtml():`<div class="emp">${ic('gear','big')}<br>اختر إجراءً من القائمة الجانبية.</div>`;return}
   if(v==='records'){document.getElementById('body').innerHTML=profile();return}
   if(v==='leaves'){tb.innerHTML=leavesHead();document.getElementById('body').innerHTML=leavesBody();return}
   if(v==='requests'){tb.innerHTML=reqHead();document.getElementById('body').innerHTML=reqBody();return}
-  if(v==='programs'){tb.innerHTML=progHead();document.getElementById('body').innerHTML=progBody();return}
+  if(v==='programs'){tb.innerHTML=inPv?'':progHead();document.getElementById('body').innerHTML=progBody();if(inPv)placeT();return}
   tb.innerHTML=DAYS.map((d,i)=>`<button class="tab ${U.tab===i?'on':''}" onclick="U.tab=${i};render()">${d[0]}</button>`).join('')+
     `<button class="tab ${U.tab===-1?'on':''}" onclick="U.tab=-1;render()">ملخص الشهر</button><span class="t">${U.dept==='all'?'كل الأقسام':esc((S.depts.find(d=>d.id===U.dept)||{}).name||'')}</span>`;
   document.getElementById('body').innerHTML=U.tab===-1?summary():blocks();
