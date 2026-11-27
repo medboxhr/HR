@@ -405,6 +405,8 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const ar=s=>String(s).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pad=n=>String(n).padStart(2,'0');
+const hm=m=>pad(Math.floor(m/60))+':'+pad(m%60);
+const defDivs=()=>[10,14,18,22,2,6].map(h=>({id:uid(),from:hm(h*60),to:hm(((h+4)%24)*60)}));
 const PROGS=[['nursing','الكادر التمريضي','nursing'],['medical','الكادر الطبي','doctors'],['admin','الكادر الإداري','admins'],['tech','الكادر الفني','techs'],['service','الكادر الخدمي','service']];
 const dayName=d=>DAYS.find(x=>x[1]===d.getDay())[0];
 const dk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -488,9 +490,15 @@ function mig(){S.shiftTypes=S.shiftTypes||[...DEF_SHIFTS];DEF_SHIFTS.forEach(t=>
   if(S.leaveCfg.maxUnpaid==null)S.leaveCfg.maxUnpaid=10;
   S.leaves=S.leaves||[];
   const seenLv=new Set(S.leaves.map(l=>l.id));
-  S.programs.forEach(p=>{if(!p.wd)p.wd=genWd(p.cat);p.tpl=p.tpl||{};p.ovr=p.ovr||{};
+  const normL=L=>{if(!L||typeof L!=='object')return;L.divs=Array.isArray(L.divs)&&L.divs.length?L.divs:defDivs();L.depts=Array.isArray(L.depts)?L.depts:[];L.depts.forEach(d=>{d.rows=Array.isArray(d.rows)?d.rows:[];d.rows.forEach(r=>{r.c=r.c||{}})})};
+  S.programs.forEach(p=>{
+    if(!p.wd||typeof p.wd!=='object')p.wd=genWd(p.cat);
+    DAYS.forEach(d=>{if(!Array.isArray(p.wd[d[0]]))p.wd[d[0]]=[]});
+    p.tpl=p.tpl||{};p.ovr=p.ovr||{};
+    Object.values(p.tpl).forEach(normL);Object.values(p.ovr).forEach(normL);
     (p.leaves||[]).forEach(l=>{if(!seenLv.has(l.id)){seenLv.add(l.id);S.leaves.push({...l,ts:l.ts||Date.now()})}});
-    p.leaves=p.leaves||[]});
+    p.leaves=p.leaves||[];
+  });
   S.facilityName=S.facilityName||'';
   S.notifs=S.notifs||[];
   S.requests=S.requests||[];
@@ -1567,7 +1575,6 @@ function leavesInPeriod(year,month){
   }).sort((a,b)=>b.from.localeCompare(a.from));
 }
 const tm=t=>{const[a,b]=t.split(':');return (+a)*60+(+b)};
-const hm=m=>pad(Math.floor(m/60))+':'+pad(m%60);
 const fT=t=>{let[h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return m?`${h}:${pad(m)} ${ap}`:`${h} ${ap}`};
 const dLab=d=>`${fT(d.from)} - ${fT(d.to)}`;
 const dMin=d=>((tm(d.to)-tm(d.from))+1440)%1440||1440;
@@ -1577,9 +1584,9 @@ const progOf=()=>S.programs.find(x=>x.id===U.pv);
 const exists=id=>S.nurses.some(x=>x.id===id);
 const nameOf=id=>(S.nurses.find(x=>x.id===id)||{name:'—'}).name;
 const recCat=P=>PROGS.find(c=>c[0]===P.cat)[2];
-const defDivs=()=>[10,14,18,22,2,6].map(h=>({id:uid(),from:hm(h*60),to:hm(((h+4)%24)*60)}));
-function tplOf(P,wd){return P.tpl[wd]||(P.tpl[wd]={divs:defDivs(),depts:[]})}
-const Lview=(P,k)=>P.ovr[k]||tplOf(P,dayName(pdate(k)));
+function safeL(L){if(!L)return {divs:defDivs(),depts:[]};if(!Array.isArray(L.divs)||!L.divs.length)L.divs=defDivs();if(!Array.isArray(L.depts))L.depts=[];L.depts.forEach(d=>{if(!Array.isArray(d.rows))d.rows=[];d.rows.forEach(r=>{if(!r.c)r.c={}})});return L}
+function tplOf(P,wd){P.tpl=P.tpl||{};return safeL(P.tpl[wd]||(P.tpl[wd]={divs:defDivs(),depts:[]}))}
+const Lview=(P,k)=>safeL((P.ovr&&P.ovr[k])||tplOf(P,dayName(pdate(k))));
 const modeOf=(P,k)=>P.ovr[k]?'date':U.scope;
 function edit(fn){if(!U.pedit)return;const P=progOf(),k=U.pday,wd=dayName(pdate(k));let L;
   if(modeOf(P,k)==='date')L=P.ovr[k]||(P.ovr[k]=cl(tplOf(P,wd)));else L=tplOf(P,wd);
@@ -1592,7 +1599,7 @@ function stats(P){
   const R={},g=id=>R[id]||(R[id]={h:0,sh:0,days:new Set(),daily:{},delayMins:0,lv:{paid:0,unpaid:0,paidsub:0,unpaidsub:0,absence:0,delay:0}}),n=new Date(P.y,P.m+1,0).getDate();
   const evalCache={},evOf=id=>evalCache[id]||(evalCache[id]=evalAnnualLeaves(id,P.y));
   for(let d=1;d<=n;d++){const k=dk(new Date(P.y,P.m,d)),L=Lview(P,k);
-    L.depts.forEach(dep=>dep.rows.forEach(r=>Object.entries(r.c).forEach(([dv,a])=>{
+    (L.depts||[]).forEach(dep=>(dep.rows||[]).forEach(r=>Object.entries(r.c||{}).forEach(([dv,a])=>{
       const D=L.divs.find(x=>x.id===dv);if(!D||!exists(a))return;
       const lv=evOf(a).byDay[k];
       const w=!lv||lv.effType==='delay'?a:(lv.sub||null);
@@ -1600,7 +1607,7 @@ function stats(P){
       const o=g(w),m=dMin(D);o.h+=m;o.sh++;o.days.add(k);o.daily[k]=(o.daily[k]||0)+m})))}
   const mPre=`${P.y}-${pad(P.m+1)}-`;
   const empIds=new Set(Object.keys(R));
-  Object.values(P.wd).forEach(l=>l.forEach(i=>empIds.add(i)));
+  Object.values(P.wd||{}).forEach(l=>(l||[]).forEach(i=>empIds.add(i)));
   S.leaves.forEach(l=>{if(exists(l.emp))empIds.add(l.emp)});
   empIds.forEach(id=>{
     if(!exists(id))return;
@@ -1832,7 +1839,7 @@ function dayTab(P){
 }
 function sumTab(P){
   const R=stats(P),rc=recCat(P),ids=new Set(Object.keys(R));
-  Object.values(P.wd).forEach(l=>l.forEach(i=>ids.add(i)));
+  Object.values(P.wd||{}).forEach(l=>(l||[]).forEach(i=>ids.add(i)));
   const lv=leavesInPeriod(P.y,P.m).filter(l=>{const e=S.nurses.find(n=>n.id===l.emp);return e&&e.cat===rc});
   lv.forEach(l=>ids.add(l.emp));
   const list=byName([...ids].map(i=>S.nurses.find(x=>x.id===i)).filter(Boolean)),z={h:0,sh:0,days:new Set(),delayMins:0,lv:{paid:0,unpaid:0,paidsub:0,unpaidsub:0,absence:0,delay:0}};
