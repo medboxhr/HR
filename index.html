@@ -604,7 +604,11 @@ async function doFbLogin(){
         body:JSON.stringify({email,password:pass,returnSecureToken:true})
       });
       const j=await res.json();
-      if(!res.ok)throw new Error((j.error&&j.error.message)||'بيانات الدخول إلى Firebase غير صحيحة');
+      if(!res.ok){
+        const code=(j.error&&j.error.message)||'';
+        const map={'CONFIGURATION_NOT_FOUND':'يرجى تفعيل Authentication ← Email/Password في لوحة تحكم Firebase أولاً','INVALID_LOGIN_CREDENTIALS':'البريد الإلكتروني أو كلمة السر غير صحيحة','EMAIL_NOT_FOUND':'هذا البريد غير مسجل في Firebase Authentication','INVALID_PASSWORD':'كلمة السر غير صحيحة','USER_DISABLED':'تم تعطيل هذا الحساب في Firebase','TOO_MANY_ATTEMPTS_TRY_LATER':'محاولات كثيرة خاطئة — حاول بعد قليل'};
+        throw new Error(map[code]||code||'بيانات الدخول إلى Firebase غير صحيحة');
+      }
       FB.token=j.idToken||'';
       FB.refreshToken=j.refreshToken||'';
       FB.email=email;
