@@ -244,6 +244,22 @@ td.lv{background:#fff3cd}td.lv select{color:#92400e;font-weight:700}
 .lv-kpi.dng b{color:var(--rd)}
 td.ab{background:#fee2e2}td.ab select{color:#b91c1c;font-weight:700}
 td.dl{background:#e0f2fe}td.dl select{color:#0369a1;font-weight:700}
+.auth-steps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.auth-step{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;font-size:12.5px;font-weight:700;color:var(--mu);cursor:pointer;transition:.15s}
+.auth-step.on{background:var(--p);color:#fff;border-color:var(--p)}
+.auth-step.done{border-color:#16a34a;color:#15803d;background:#f0fdf4}
+.fb-st{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:10px}
+.fb-st.ok{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+.fb-st.loc{background:#f8fafc;color:var(--mu);border:1px solid #e2e8f0}
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.perm-grid label.ck{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:7px 10px;margin:0!important;font-size:12.5px;cursor:pointer}
+.perm-grid label.ck.w{grid-column:1/3}
+.perm-grid label.ck:has(input:checked){background:var(--pl);border-color:var(--p);color:var(--pd);font-weight:700!important}
+.u-card{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,.8);border:1px solid rgba(7,144,172,.15);border-radius:12px;padding:10px 14px}
+.u-card .u-in{flex:1;min-width:180px}
+.u-perms{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.fb-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:#94a3b8}
+.fb-dot.on{background:#16a34a}
 @media print{body{background:#fff;overflow:visible;padding:0}nav,aside,.mh{display:none!important}.glass{box-shadow:none;border:0;background:#fff}#body{overflow:visible}td select{-webkit-appearance:none}.blk{break-inside:avoid}}
 </style>
 </head>
@@ -308,6 +324,9 @@ IC.sms='<path d="M21 12a8 8 0 0 1-8 8H5l-2 2 1-5a8 8 0 1 1 17-5z"/><path d="M8 1
 IC.wa='<path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.7-1.2A9 9 0 1 0 12 3z"/><path d="M9.5 8.8c-.2-.4-.5-.4-.8-.4h-.6c-.2 0-.6.1-.9.4-.3.4-1.1 1.1-1.1 2.6s1.1 3 1.3 3.2c.2.2 2.2 3.4 5.4 4.6 2.6 1 3.1.8 3.7.7.6-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.7-.4l-1.7-.8c-.2-.1-.4-.1-.6.2l-.8 1c-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.4.1-.6l.5-.6c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5z"/>';
 IC.wacall='<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/><path d="M15 4a5 5 0 0 1 5 5M15 8a1 1 0 0 1 1 1"/>';
 IC.alert='<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>';
+IC.shield='<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="m9 12 2 2 4-4"/>';
+IC.db='<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>';
+IC.logout='<path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M16 17l5-5-5-5M21 12H9"/>';
 const SHIFTS=['10 AM - 2 PM','2 PM - 6 PM','6 PM - 10 PM','10 PM - 2 AM','2 AM - 6 AM','6 AM - 10 AM'];
 const DAYS=[['السبت',6],['الأحد',0],['الاثنين',1],['الثلاثاء',2],['الأربعاء',3],['الخميس',4],['الجمعة',5]];
 const MONTHS=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
@@ -341,10 +360,30 @@ let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.depts)S=seed();
 if(!S.shiftTypes)S.shiftTypes=[...DEF_SHIFTS];
 mig();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let _fbTimer=null;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(FB&&FB.connected&&FB.url){clearTimeout(_fbTimer);_fbTimer=setTimeout(()=>syncToFirebase(true),800)}};
 const mob=()=>!!(window.matchMedia&&window.matchMedia('(max-width:800px)').matches);
 const now=new Date();
-let U={y:now.getFullYear(),m:now.getMonth(),tab:DAYS.findIndex(d=>d[1]===now.getDay()),dept:'all',view:'home',pedit:false,prev:'home',about:false,cat:null,q:'',sort:'new',sel:null,selMode:false,checked:[],hide:mob(),pc:null,py:now.getFullYear(),pm:now.getMonth(),pid:null,pv:null,pday:null,pwd:null,ptab:'weeks',scope:'all',owd:null,ly:now.getFullYear(),lm:now.getMonth(),lcat:'all',ltab:'records'};
+const FB_KEY='hr_fb_cfg_v1',AUTH_KEY='hr_auth_v1';
+const ROLES=[
+  ['admin','مدير البرنامج (أدمن)',{full:true,add:true,edit:true,del:true}],
+  ['director','رئيس المشفى',{full:false,add:true,edit:true,del:true}],
+  ['head_nurse','رئيس التمريض',{full:false,add:true,edit:true,del:false}],
+  ['supervisor','مشرف',{full:false,add:true,edit:true,del:false}],
+  ['employee','موظف',{full:false,add:false,edit:false,del:false}]
+];
+const PERMS=[
+  ['full','التحكم الكلي بالبرنامج وإضافة مستخدمين آخرين'],
+  ['add','إضافة'],
+  ['edit','تعديل'],
+  ['del','حذف']
+];
+const roleName=k=>(ROLES.find(r=>r[0]===k)||[0,k])[1];
+let FB={url:'',token:'',path:'hospital_hr',connected:false,lastSync:null};
+try{const fc=JSON.parse(localStorage.getItem(FB_KEY));if(fc)Object.assign(FB,fc)}catch(e){}
+let U={y:now.getFullYear(),m:now.getMonth(),tab:DAYS.findIndex(d=>d[1]===now.getDay()),dept:'all',view:'home',pedit:false,prev:'home',about:false,stab:'users',user:null,cat:null,q:'',sort:'new',sel:null,selMode:false,checked:[],hide:mob(),pc:null,py:now.getFullYear(),pm:now.getMonth(),pid:null,pv:null,pday:null,pwd:null,ptab:'weeks',scope:'all',owd:null,ly:now.getFullYear(),lm:now.getMonth(),lcat:'all',ltab:'records'};
+try{const au=localStorage.getItem(AUTH_KEY);if(au){const f=S.users&&S.users.find(x=>x.id===au);if(f)U.user=f.id}}catch(e){}
 
 function mv(k){U.m+=k;if(U.m>11){U.m=0;U.y++}if(U.m<0){U.m=11;U.y--}render()}
 
@@ -367,11 +406,226 @@ function mig(){S.shiftTypes=S.shiftTypes||[...DEF_SHIFTS];DEF_SHIFTS.forEach(t=>
   S.programs.forEach(p=>{if(!p.wd)p.wd=genWd(p.cat);p.tpl=p.tpl||{};p.ovr=p.ovr||{};
     (p.leaves||[]).forEach(l=>{if(!seenLv.has(l.id)){seenLv.add(l.id);S.leaves.push({...l,ts:l.ts||Date.now()})}});
     p.leaves=p.leaves||[]});
+  S.users=S.users||[];
+  if(!S.users.length){S.users.push({id:uid(),name:'مدير البرنامج',username:'admin',pass:'1234',role:'admin',perms:{full:true,add:true,edit:true,del:true},ts:Date.now()})}
+  S.users.forEach(u=>{u.perms=u.perms||{full:u.role==='admin',add:true,edit:true,del:u.role==='admin'}});
   S.seq=S.seq||0;S.nurses.forEach((n,i)=>{n.cat=n.cat||'nursing';if(!n.no)n.no=++S.seq;if(!n.ts)n.ts=Date.now()-(S.nurses.length-i)*1000})}
 function setView(v){if(v==='settings'&&U.view!=='settings')U.prev=U.view;if(v!=='records'){U.selMode=false;U.checked=[]}U.view=v;U.about=false;if(v==='settings')U.hide=false;else if((v==='records'||v==='programs')&&mob())U.hide=false;render()}
 function openPrograms(){setView('programs');U.hide=false;render()}
 function openLeaves(cat,tab){if(cat)U.lcat=cat;if(tab)U.ltab=tab;setView('leaves');U.hide=false;render()}
-function loginBtn(){toast('تسجيل الدخول — قريباً')}
+const curUser=()=>U.user?(S.users||[]).find(x=>x.id===U.user)||null:null;
+function can(p){
+  const u=curUser();
+  if(!u)return true;
+  if(u.perms&&u.perms.full)return true;
+  return !!(u.perms&&u.perms[p]);
+}
+function guard(p,msg){
+  if(can(p))return true;
+  toast(msg||'ليس لديك صلاحية تنفيذ هذا الإجراء');
+  return false;
+}
+function saveFbCfg(){try{localStorage.setItem(FB_KEY,JSON.stringify(FB))}catch(e){}}
+function fbEndpoint(){
+  const base=String(FB.url||'').trim().replace(/\/+$/,'');
+  const pth=String(FB.path||'hospital_hr').trim().replace(/^\/+|\/+$/g,'')||'hospital_hr';
+  if(!base)return '';
+  const q=FB.token?`?auth=${encodeURIComponent(FB.token.trim())}`:'';
+  return `${base}/${pth}.json${q}`;
+}
+async function syncFromFirebase(){
+  const url=fbEndpoint();
+  if(!url)throw new Error('يرجى إدخال رابط قاعدة بيانات Firebase');
+  if(!/^https:\/\//i.test(url))throw new Error('يجب أن يبدأ رابط Firebase بـ https://');
+  const r=await fetch(url);
+  if(!r.ok)throw new Error('تعذر الاتصال بقاعدة البيانات (رمز '+r.status+')');
+  const data=await r.json();
+  if(data&&data.depts&&data.nurses){
+    S=data;S.sched=S.sched||{};S.shiftTypes=S.shiftTypes||[...DEF_SHIFTS];mig();
+    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  }else if(!data){
+    await syncToFirebase(true);
+  }
+  FB.connected=true;FB.lastSync=Date.now();saveFbCfg();
+}
+async function syncToFirebase(silent){
+  const url=fbEndpoint();
+  if(!url||!FB.connected)return;
+  try{
+    const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    FB.lastSync=Date.now();saveFbCfg();
+    if(!silent)toast('تمت مزامنة قاعدة البيانات مع Firebase بنجاح');
+  }catch(err){
+    if(!silent)toast('تعذر المزامنة مع Firebase — تم الحفظ محلياً');
+  }
+}
+function loginBtn(){
+  const u=curUser();
+  if(u){
+    modal(`<h3>${ic('shield')} الحساب النشط</h3>
+      <div class="u-card" style="margin-bottom:12px"><div class="u-in"><b>${esc(u.name)}</b> <em class="bdg">${roleName(u.role)}</em><div style="font-size:12px;color:var(--mu)">@${esc(u.username)}</div><div class="u-perms">${PERMS.filter(x=>u.perms.full||u.perms[x[0]]).map(x=>`<em class="bdg ok">${x[1]}</em>`).join('')||'<em class="bdg">عرض فقط</em>'}</div></div></div>
+      <div class="fb-st ${FB.connected?'ok':'loc'}"><span class="fb-dot ${FB.connected?'on':''}"></span> ${FB.connected?'متصل بـ Firebase: '+esc(FB.url):'الوضع المحلي (غير مرتبط بـ Firebase)'}</div>
+      <div class="act" style="flex-wrap:wrap">
+        <button class="ib pri" onclick="closeM();openAuthModal(1)">${ic('db')} إعدادات Firebase</button>
+        <button class="ib" onclick="closeM();openAuthModal(2)">${ic('user')} تبديل الحساب</button>
+        ${can('full')?`<button class="ib" onclick="closeM();U.stab='users';setView('settings')">${ic('shield')} إدارة المستخدمين</button>`:''}
+        <span style="flex:1"></span>
+        <button class="ib dng" onclick="doLogout()">${ic('logout')} تسجيل الخروج</button>
+      </div>`);
+    return;
+  }
+  openAuthModal(1);
+}
+function openAuthModal(step){
+  step=step||1;
+  modal(`<h3>${ic('shield')} تسجيل الدخول الثنائي</h3>
+    <div class="auth-steps">
+      <button type="button" class="auth-step ${step===1?'on':FB.connected?'done':''}" onclick="closeM();openAuthModal(1)">١. قاعدة البيانات (Firebase)</button>
+      <button type="button" class="auth-step ${step===2?'on':''}" onclick="closeM();openAuthModal(2)">٢. حساب المستخدم</button>
+    </div>
+    ${step===1?`
+      <div class="fb-st ${FB.connected?'ok':'loc'}"><span class="fb-dot ${FB.connected?'on':''}"></span> ${FB.connected?'متصل بقاعدة البيانات السحابية':'الخطوة الأولى: اربط قاعدة بيانات Firebase لتحميل البيانات أو تابع محلياً'}</div>
+      <label>رابط قاعدة البيانات (Firebase Realtime Database URL)</label>
+      <input id="fb_url" dir="ltr" value="${esc(FB.url||'')}" placeholder="https://your-project-default-rtdb.firebaseio.com">
+      <div class="fg">
+        <div><label>مسار البيانات (Path)</label><input id="fb_path" dir="ltr" value="${esc(FB.path||'hospital_hr')}" placeholder="hospital_hr"></div>
+        <div><label>رمز المصادقة / Secret (اختياري)</label><input id="fb_tok" type="password" dir="ltr" value="${esc(FB.token||'')}" placeholder="اختياري"></div>
+      </div>
+      <label>أو الصق كود firebaseConfig لاستخراج الرابط تلقائياً</label>
+      <textarea id="fb_json" dir="ltr" style="min-height:58px" placeholder='{ "databaseURL": "https://..." }' oninput="parseFbPaste(this.value)"></textarea>
+      <div class="er" id="fb_err"></div>
+      <div class="act" style="flex-wrap:wrap">
+        <button class="ib pri" id="fb_go" onclick="connectFbStep()">${ic('db')} تحميل قاعدة البيانات والمتابعة</button>
+        <button class="ib" onclick="closeM();openAuthModal(2)">متابعة محلياً (الخطوة ٢)</button>
+        ${FB.connected?`<button class="ib dng" onclick="disconnectFb()">قطع الاتصال</button>`:''}
+      </div>
+    `:`
+      <div class="fb-st ${FB.connected?'ok':'loc'}"><span class="fb-dot ${FB.connected?'on':''}"></span> ${FB.connected?'قاعدة البيانات محمَّلة من Firebase':'العمل على قاعدة البيانات المحلية'}</div>
+      <label>اسم المستخدم</label><input id="lg_u" dir="ltr" placeholder="admin" value="${esc((S.users&&S.users[0]&&!U.user)?S.users[0].username:'')}">
+      <label>كلمة المرور</label><input id="lg_p" type="password" dir="ltr" placeholder="••••">
+      <div style="font-size:11.5px;color:var(--mu);margin-top:6px">الحساب الافتراضي لمدير البرنامج: <b dir="ltr">admin</b> / <b dir="ltr">1234</b> (يمكنك إضافة حسابات وتعديل الصلاحيات من الإعدادات).</div>
+      <div class="er" id="lg_err"></div>
+      <div class="act">
+        <button class="ib pri" onclick="doLogin()">${ic('shield')} دخول</button>
+        <button class="ib" onclick="closeM();openAuthModal(1)">رجوع للخطوة ١</button>
+        <button class="ib" onclick="closeM()">إلغاء</button>
+      </div>
+    `}`);
+}
+function parseFbPaste(txt){
+  const m=String(txt||'').match(/https:\/\/[a-zA-Z0-9._-]+(?:firebaseio\.com|firebasedatabase\.app)[^\s"']*/);
+  if(m){const el=document.getElementById('fb_url');if(el)el.value=m[0].replace(/\/+$/,'')}
+}
+async function connectFbStep(){
+  const er=document.getElementById('fb_err'),btn=document.getElementById('fb_go');
+  FB.url=gv('fb_url').trim();FB.path=gv('fb_path').trim()||'hospital_hr';FB.token=gv('fb_tok').trim();
+  if(!FB.url){er.textContent='أدخل رابط قاعدة بيانات Firebase أولاً أو اضغط «متابعة محلياً»';return}
+  er.textContent='';if(btn)btn.disabled=true;
+  try{
+    await syncFromFirebase();
+    toast('تم الاتصال وتحميل قاعدة البيانات من Firebase');
+    closeM();render();openAuthModal(2);
+  }catch(err){
+    er.textContent=err.message||'تعذر الاتصال بـ Firebase';
+    if(btn)btn.disabled=false;
+  }
+}
+function disconnectFb(){
+  FB.connected=false;saveFbCfg();closeM();render();toast('تم فصل الاتصال عن Firebase — العمل الآن محلياً');
+}
+function doLogin(){
+  const un=gv('lg_u').trim().toLowerCase(),pw=gv('lg_p'),er=document.getElementById('lg_err');
+  const u=(S.users||[]).find(x=>String(x.username||'').toLowerCase()===un&&String(x.pass||'')===pw);
+  if(!u){er.textContent='اسم المستخدم أو كلمة المرور غير صحيحة';return}
+  U.user=u.id;
+  try{localStorage.setItem(AUTH_KEY,u.id)}catch(e){}
+  closeM();render();
+  toast(`مرحباً ${u.name} (${roleName(u.role)})`);
+}
+function doLogout(){
+  U.user=null;
+  try{localStorage.removeItem(AUTH_KEY)}catch(e){}
+  closeM();render();toast('تم تسجيل الخروج');
+}
+
+/* ===== إدارة حسابات المستخدمين والصلاحيات (في الإعدادات) ===== */
+function usersSettingsHtml(){
+  const u=curUser();
+  if(u&&!can('full')){
+    return `<div class="blk"><div class="bh">${ic('shield')} حسابات المستخدمين والصلاحيات</div><div class="emp">${ic('shield','big')}<br>هذه الصفحة مخصصة فقط لحسابات <b>التحكم الكلي بالبرنامج وإضافة مستخدمين آخرين</b>.<br><br><button class="ib pri" onclick="openAuthModal(2)">تبديل الحساب</button></div></div>`;
+  }
+  const list=S.users||[];
+  return `<div class="blk"><div class="bh">${ic('shield')} حسابات المستخدمين والصلاحيات (${ar(list.length)})<span style="flex:1"></span><button class="ib pri sm" onclick="userForm()">${ic('plus')} إضافة مستخدم</button></div>
+    <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+      ${u?`<div class="fb-st ok">${ic('user')} مسجّل الدخول حالياً: <b>${esc(u.name)}</b> (${roleName(u.role)}) <span style="flex:1"></span><button class="ib sm" onclick="openAuthModal(2)">تبديل الحساب</button><button class="ib sm dng" onclick="doLogout()">خروج</button></div>`:`<div class="fb-st loc">${ic('user')} لم تقم بتسجيل الدخول بعد <span style="flex:1"></span><button class="ib sm pri" onclick="openAuthModal(1)">تسجيل الدخول الثنائي</button></div>`}
+      ${list.map(x=>{
+        const pms=PERMS.filter(p=>x.perms&&(x.perms.full||x.perms[p[0]]));
+        return `<div class="u-card"><div class="u-in"><b>${esc(x.name)}</b> <em class="bdg">${roleName(x.role)}</em>${u&&u.id===x.id?' <em class="bdg ok">نشط</em>':''}<div style="font-size:12px;color:var(--mu)">اسم المستخدم: <b dir="ltr">@${esc(x.username)}</b></div><div class="u-perms">${pms.map(p=>`<em class="bdg ${p[0]==='full'?'ok':''}">${p[1]}</em>`).join('')||'<em class="bdg">عرض فقط</em>'}</div></div>
+          <button class="ib sm" title="تعديل" onclick="userForm('${x.id}')">${ic('edit')} تعديل</button>
+          <button class="ib sm dng" title="حذف" onclick="delUser('${x.id}')">${ic('trash')}</button></div>`;
+      }).join('')}
+    </div></div>`;
+}
+function fbSettingsHtml(){
+  return `<div class="blk"><div class="bh">${ic('db')} قاعدة بيانات Firebase<span style="flex:1"></span><button class="ib pri sm" onclick="openAuthModal(1)">${ic('gear')} إعداد الربط</button></div>
+    <div style="padding:14px;font-size:13.5px;line-height:1.8">
+      <div class="fb-st ${FB.connected?'ok':'loc'}"><span class="fb-dot ${FB.connected?'on':''}"></span> ${FB.connected?'متصل بقاعدة البيانات: '+esc(FB.url):'غير متصل حالياً — البيانات محفوظة محلياً في المتصفح'}</div>
+      ${FB.connected?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ib pri" onclick="syncFromFirebase().then(()=>{render();toast('تم تحديث البيانات من Firebase')}).catch(e=>toast(e.message))">${ic('down')} تحميل من Firebase</button><button class="ib" onclick="syncToFirebase(false)">${ic('up')} رفع وحفظ إلى Firebase</button><button class="ib dng" onclick="disconnectFb()">قطع الاتصال</button></div>`:`<button class="ib pri" onclick="openAuthModal(1)">${ic('db')} ربط قاعدة بيانات Firebase الآن</button>`}
+    </div></div>`;
+}
+function userForm(id){
+  if(!guard('full','صلاحية إدارة المستخدمين متاحة فقط للتحكم الكلي'))return;
+  const ex=(S.users||[]).find(x=>x.id===id)||null;
+  const r=ex?ex.role:'employee',pm=ex?ex.perms:ROLES.find(x=>x[0]===r)[2];
+  modal(`<h3>${ex?'تعديل حساب مستخدم':'إضافة مستخدم جديد'}</h3><div class="fg">
+    <div class="w"><label>الاسم الكامل <i>*</i></label><input id="u_name" value="${esc(ex?ex.name:'')}" placeholder="مثال: د. أحمد العلي"></div>
+    <div><label>اسم المستخدم <i>*</i></label><input id="u_un" dir="ltr" value="${esc(ex?ex.username:'')}" placeholder="ahmed"></div>
+    <div><label>كلمة المرور ${ex?'(اتركها فارغة للإبقاء)':'<i>*</i>'}</label><input id="u_pw" type="password" dir="ltr" placeholder="••••"></div>
+    <div class="w"><label>الدور الوظيفي <i>*</i></label><select id="u_role" onchange="onRoleChange(this.value)">${ROLES.map(x=>`<option value="${x[0]}" ${x[0]===r?'selected':''}>${x[1]}</option>`).join('')}</select></div>
+    <div class="w"><label>الصلاحيات الممنوحة</label><div class="perm-grid">
+      <label class="ck w"><input type="checkbox" id="p_full" ${pm.full?'checked':''} onchange="onFullPerm(this.checked)"> التحكم الكلي بالبرنامج وإضافة مستخدمين آخرين</label>
+      <label class="ck"><input type="checkbox" id="p_add" ${(pm.full||pm.add)?'checked':''}> إضافة</label>
+      <label class="ck"><input type="checkbox" id="p_edit" ${(pm.full||pm.edit)?'checked':''}> تعديل</label>
+      <label class="ck"><input type="checkbox" id="p_del" ${(pm.full||pm.del)?'checked':''}> حذف</label>
+    </div></div>
+  </div><div class="er" id="u_err"></div>
+  <div class="act"><button class="ib pri" onclick="userSave('${id||''}')">حفظ</button><button class="ib" onclick="closeM()">إلغاء</button></div>`);
+}
+function onRoleChange(r){
+  const def=(ROLES.find(x=>x[0]===r)||[0,0,{full:false,add:false,edit:false,del:false}])[2];
+  ['full','add','edit','del'].forEach(k=>{const el=document.getElementById('p_'+k);if(el)el.checked=!!def[k]});
+}
+function onFullPerm(on){
+  if(on)['add','edit','del'].forEach(k=>{const el=document.getElementById('p_'+k);if(el)el.checked=true});
+}
+function userSave(id){
+  const nm=gv('u_name').trim(),un=gv('u_un').trim(),pw=gv('u_pw'),rl=gv('u_role'),er=document.getElementById('u_err');
+  if(!nm||!un){er.textContent='أدخل الاسم واسم المستخدم';return}
+  if(!id&&!pw){er.textContent='أدخل كلمة المرور للمستخدم الجديد';return}
+  const dup=(S.users||[]).find(x=>x.id!==id&&x.username.toLowerCase()===un.toLowerCase());
+  if(dup){er.textContent='اسم المستخدم مستخدم مسبقاً';return}
+  const full=document.getElementById('p_full').checked;
+  const perms={full,add:full||document.getElementById('p_add').checked,edit:full||document.getElementById('p_edit').checked,del:full||document.getElementById('p_del').checked};
+  if(id){
+    const u=S.users.find(x=>x.id===id);
+    u.name=nm;u.username=un;u.role=rl;u.perms=perms;if(pw)u.pass=pw;
+  }else{
+    S.users.push({id:uid(),name:nm,username:un,pass:pw,role:rl,perms,ts:Date.now()});
+  }
+  save();closeM();render();toast(id?'تم تحديث حساب المستخدم':'تمت إضافة المستخدم بنجاح');
+}
+function delUser(id){
+  if(!guard('full','صلاحية حذف المستخدمين متاحة فقط للتحكم الكلي'))return;
+  const admins=(S.users||[]).filter(x=>x.perms&&x.perms.full);
+  const tgt=(S.users||[]).find(x=>x.id===id);
+  if(tgt&&tgt.perms&&tgt.perms.full&&admins.length<=1)return toast('لا يمكن حذف آخر حساب يملك التحكم الكلي');
+  ask(`حذف حساب المستخدم «${esc(tgt?tgt.name:'')}»؟`,()=>{
+    S.users=S.users.filter(x=>x.id!==id);
+    if(U.user===id){U.user=null;try{localStorage.removeItem(AUTH_KEY)}catch(e){}}
+    save();render();toast('تم حذف الحساب');
+  });
+}
 function notifBtn(){
   const yr=now.getFullYear(),al=allLeaveAlerts(yr);
   if(!al.length){modal('<h3>الإشعارات</h3><div class="emp" style="padding:30px 10px">لا توجد إشعارات أو تنبيهات حالياً</div>');return}
@@ -416,8 +670,12 @@ function renderSide(){
   if(U.view==='settings'){
     cr.innerHTML=ic('gear')+' الإعدادات';sf.innerHTML='';
     const it=(i,t,fn,on)=>`<div class="d ${on?'on':''}" onclick="${fn}"><span class="cat">${ic(i)}</span><span class="n">${t}</span></div>`;
-    el.innerHTML=it('down','حفظ','exp()')+it('print','طباعة','doPrint()')+it('up','استيراد',"document.getElementById('imp').click()")+
-      '<div style="border-top:1px solid rgba(255,255,255,.7);margin:4px 0"></div>'+it('hosp','حول التطبيق',"U.about=true;if(mob())U.hide=true;render()",U.about);
+    el.innerHTML=it('shield','حسابات المستخدمين والصلاحيات',"U.stab='users';U.about=false;if(mob())U.hide=true;render()",U.stab==='users')+
+      it('db','قاعدة بيانات Firebase',"U.stab='firebase';U.about=false;if(mob())U.hide=true;render()",U.stab==='firebase')+
+      '<div style="border-top:1px solid rgba(255,255,255,.7);margin:4px 0"></div>'+
+      it('down','حفظ','exp()')+it('print','طباعة','doPrint()')+it('up','استيراد',"if(guard('full','استيراد قاعدة البيانات يتطلب صلاحية التحكم الكلي'))document.getElementById('imp').click()")+
+      '<div style="border-top:1px solid rgba(255,255,255,.7);margin:4px 0"></div>'+
+      it('hosp','حول التطبيق',"U.stab='about';U.about=true;if(mob())U.hide=true;render()",U.stab==='about'||U.about);
     return;
   }
   if(U.view==='leaves'){
@@ -539,7 +797,7 @@ function toast(t){const e=document.createElement('div');e.className='toast';e.te
 const pmList=()=>S.programs.filter(x=>x.cat===U.pc&&x.y===U.py&&x.m===U.pm).sort((a,b)=>a.no-b.no);
 const selP=()=>{const l=pmList();return l.find(x=>x.id===U.pid)||l[l.length-1]||null};
 const gv=id=>document.getElementById(id).value;
-function addProg(){
+function addProg(){if(!guard('add'))return;
   if(!U.pc)return toast('اختر برنامج دوام كادر من القائمة الجانبية أولاً');
   const l=pmList(),nm=PROGS.find(c=>c[0]===U.pc)[1];
   modal(`<h3>إنشاء برنامج جديد</h3><div style="font-size:13px;color:var(--mu)">الكادر ${nm.replace('الكادر ','')} · ${MONTHS[U.pm]} ${ar(U.py)}</div>
@@ -554,6 +812,7 @@ function saveProg(){
   S.programs.push(p);save();closeM();openProg(p.id,1);toast('تم إنشاء البرنامج رقم '+ar(no));
 }
 function openProg(id,ed){
+  if(ed&&!guard('edit'))ed=0;
   U.pedit=!!ed;
   const p=S.programs.find(x=>x.id===id);if(!p)return;
   U.pc=p.cat;U.py=p.y;U.pm=p.m;U.pid=id;U.pv=id;U.ptab='weeks';
@@ -561,7 +820,7 @@ function openProg(id,ed){
 }
 function closeProg(){U.pv=null;render()}
 function selProg(id){const p=S.programs.find(x=>x.id===id);U.py=p.y;U.pm=p.m;U.pid=id;U.pv=null;render()}
-function delProg(id){ask('حذف هذا البرنامج بكل جداوله وإجازاته؟',()=>{S.programs=S.programs.filter(x=>x.id!==id);if(U.pv===id)U.pv=null;save();render()})}
+function delProg(id){if(!guard('del'))return;ask('حذف هذا البرنامج بكل جداوله وإجازاته؟',()=>{S.programs=S.programs.filter(x=>x.id!==id);if(U.pv===id)U.pv=null;save();render()})}
 const curWd=()=>dayName(pdate(U.pday));
 function rmWd(id){const P=S.programs.find(x=>x.id===U.pv),w=curWd();P.wd[w]=(P.wd[w]||[]).filter(x=>x!==id);save();render()}
 function addWd(id){if(!id)return;const P=S.programs.find(x=>x.id===U.pv),w=curWd();(P.wd[w]=P.wd[w]||[]).push(id);save();render()}
@@ -756,7 +1015,7 @@ function divGen(){const s=tm(gv('dg_s')||'10:00'),step=Math.max(15,Math.round((+
 function divSave(){if(!_dv.length||_dv.some(d=>!d.from||!d.to))return toast('أكمل أوقات التقسيمات');
   const dv=cl(_dv);closeM();edit(L=>{L.divs=dv;const ids=new Set(dv.map(d=>d.id));L.depts.forEach(d=>d.rows.forEach(r=>Object.keys(r.c).forEach(k=>{if(!ids.has(k))delete r.c[k]})))})}
 
-function leaveForm(emp,editId){
+function leaveForm(emp,editId){if(!guard(editId?'edit':'add'))return;
   const ex=editId?S.leaves.find(x=>x.id===editId):null;
   const P=U.view==='programs'?progOf():null;
   const catFilter=P?recCat(P):(U.view==='leaves'&&U.lcat!=='all'&&U.lcat!=='alerts'?U.lcat:null);
@@ -821,8 +1080,8 @@ function leaveSave(editId){
   else if(bl&&bl.convToUnpaid>0)toast(`ملاحظة: تجاوز الحد بأجر — تم تحويل ${ar(bl.convToUnpaid)} يوم تلقائياً إلى بلا أجر`);
   else toast(editId?'تم تعديل السجل':'تم تسجيل الإجازة بنجاح');
 }
-function delLeave(id){ask('حذف هذا السجل؟',()=>{S.leaves=S.leaves.filter(l=>l.id!==id);S.programs.forEach(p=>p.leaves=(p.leaves||[]).filter(l=>l.id!==id));save();render()})}
-function leaveCfgForm(){
+function delLeave(id){if(!guard('del'))return;ask('حذف هذا السجل؟',()=>{S.leaves=S.leaves.filter(l=>l.id!==id);S.programs.forEach(p=>p.leaves=(p.leaves||[]).filter(l=>l.id!==id));save();render()})}
+function leaveCfgForm(){if(!guard('edit'))return;
   modal(`<h3>الحدود السنوية الافتراضية للإجازات</h3>
     <div style="font-size:12.5px;color:var(--mu);margin-bottom:8px">تُطبَّق تلقائياً على جميع العناصر ما لم يُحدَّد حد خاص للموظف: عند تجاوز حد الإجازات بأجر (ببديل أو بدون بديل) تتحول تلقائياً إلى بلا أجر، وعند تجاوز حد بلا أجر تتحول إلى غياب مع إرسال تنبيه وإشارة بجانب الاسم.</div>
     <div class="fg">
@@ -836,7 +1095,7 @@ function leaveCfgSave(){
   S.leaveCfg.maxUnpaid=Math.max(0,+gv('lc_u')||0);
   save();closeM();render();toast('تم تحديث الحدود السنوية للإجازات');
 }
-function empLimitForm(empId){
+function empLimitForm(empId){if(!guard('edit'))return;
   const e=S.nurses.find(x=>x.id===empId);if(!e)return;
   modal(`<h3>تخصيص الحدود السنوية — ${esc(e.name)}</h3>
     <div style="font-size:12px;color:var(--mu);margin-bottom:8px">اترك الحقل فارغاً لاستخدام الحد الافتراضي العام (بأجر: ${ar(S.leaveCfg.maxPaid)} · بلا أجر: ${ar(S.leaveCfg.maxUnpaid)}).</div>
@@ -945,6 +1204,8 @@ function sumTab(P){
 
 function render(){
   const v=U.view,tb=document.getElementById('tabs');
+  const bL=document.getElementById('bL'),cu=curUser();
+  if(bL){bL.innerHTML=cu?`${ic('user')} ${esc(cu.name)} <small style="opacity:.85">(${roleName(cu.role)})</small>`:`<svg class="i" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h10"/></svg> تسجيل الدخول`}
   document.getElementById('bH').classList.toggle('pri',v==='home');
   document.getElementById('mR').classList.toggle('pri',v==='records');
   document.getElementById('bS').classList.toggle('pri',v==='settings');
@@ -956,7 +1217,7 @@ function render(){
   renderSide();
   document.getElementById('mh').classList.toggle('off',v==='home');document.getElementById('bP').classList.toggle('pri',v==='programs');
   if(v==='home'){document.getElementById('body').innerHTML=`<div class="emp">${ic('hosp','big')}<br>اختر من الأزرار في الأعلى.</div>`;return}
-  if(v==='settings'){document.getElementById('body').innerHTML=U.about?aboutHtml():`<div class="emp">${ic('gear','big')}<br>اختر إجراءً من القائمة الجانبية.</div>`;return}
+  if(v==='settings'){document.getElementById('body').innerHTML=U.stab==='users'?usersSettingsHtml():U.stab==='firebase'?fbSettingsHtml():(U.stab==='about'||U.about)?aboutHtml():`<div class="emp">${ic('gear','big')}<br>اختر إجراءً من القائمة الجانبية.</div>`;return}
   if(v==='records'){document.getElementById('body').innerHTML=profile();return}
   if(v==='leaves'){tb.innerHTML=leavesHead();document.getElementById('body').innerHTML=leavesBody();return}
   if(v==='programs'){tb.innerHTML=progHead();document.getElementById('body').innerHTML=progBody();return}
@@ -1002,7 +1263,7 @@ function clr(dt,q){const run=()=>{Object.keys(S.sched).forEach(k=>{if(k.startsWi
 function modal(h){const o=document.createElement('div');o.className='ov';o.innerHTML=`<div class="md"><button class="x" title="إغلاق" onclick="closeM()">${ic('x')}</button>${h}</div>`;document.body.appendChild(o);return o}
 const closeM=()=>{stopCam();[...document.querySelectorAll('.ov')].pop()?.remove()};
 
-function deptForm(id){
+function deptForm(id){if(!guard(id?'edit':'add'))return;
   const d=S.depts.find(x=>x.id===id)||{name:'',slots:2};
   modal(`<h3>${id?'تعديل القسم':'إضافة قسم'}</h3><label>اسم القسم</label><input id="dn" value="${esc(d.name)}" placeholder="مثال: الإسعاف">
    <label>عدد العناصر التمريضية في كل وردية</label><input id="ds" type="number" min="1" max="20" value="${d.slots}">
@@ -1015,18 +1276,18 @@ function deptSave(id){
   else{const d={id:uid(),name,slots};S.depts.push(d);U.dept=d.id}
   save();closeM();render();
 }
-function deptDel(id){ask('حذف القسم وكل التعيينات المرتبطة به؟',()=>{
+function deptDel(id){if(!guard('del'))return;ask('حذف القسم وكل التعيينات المرتبطة به؟',()=>{
   S.depts=S.depts.filter(d=>d.id!==id);Object.keys(S.sched).forEach(k=>{if(k.split('|')[1]===id)delete S.sched[k]});
   if(U.dept===id)U.dept='all';save();closeM();render()})}
 
-function nd(id){ask('حذف هذا الموظف وجميع تعييناته؟',()=>{S.nurses=S.nurses.filter(n=>n.id!==id);if(U.sel===id)U.sel=null;
+function nd(id){if(!guard('del'))return;ask('حذف هذا الموظف وجميع تعييناته؟',()=>{S.nurses=S.nurses.filter(n=>n.id!==id);if(U.sel===id)U.sel=null;
   S.leaves=(S.leaves||[]).filter(l=>l.emp!==id&&l.sub!==id);
   S.programs.forEach(p=>{Object.keys(p.wd).forEach(k=>p.wd[k]=p.wd[k].filter(x=>x!==id));p.leaves=(p.leaves||[]).filter(l=>l.emp!==id&&l.sub!==id);
     [...Object.values(p.tpl||{}),...Object.values(p.ovr||{})].forEach(L=>L.depts.forEach(d=>d.rows.forEach(r=>Object.keys(r.c).forEach(k=>{if(r.c[k]===id)delete r.c[k]}))))});
   Object.keys(S.sched).forEach(k=>{if(S.sched[k]===id)delete S.sched[k]});save();render()})}
 
 /* ===== إضافة / تعديل موظف ===== */
-function empForm(id){
+function empForm(id){if(!guard(id?'edit':'add'))return;
   const e=S.nurses.find(x=>x.id===id)||{};
   const cs=CATS.map(c=>`<option value="${c[0]}" ${c[0]===(e.cat||U.cat||'nursing')?'selected':''}>${c[1]}</option>`).join('');
   const st=S.shiftTypes.map(t=>`<option ${t===e.shiftType?'selected':''}>${esc(t)}</option>`).join('');
@@ -1151,7 +1412,7 @@ function togSelectAll(){
   renderSide();
 }
 function exitSelectMode(){U.selMode=false;U.checked=[];renderSide()}
-function delSelected(){
+function delSelected(){if(!guard('del'))return;
   const ids=U.checked.filter(id=>S.nurses.some(n=>n.id===id));
   if(!ids.length)return;
   ask(`حذف ${ar(ids.length)} عنصر محدد وجميع تعييناتهم؟`,()=>{
@@ -1184,12 +1445,12 @@ function loadScript(src){
 function stopCam(){
   if(_camStream){try{_camStream.getTracks().forEach(t=>t.stop())}catch(e){}_camStream=null}
 }
-function openFileScan(){
+function openFileScan(){if(!guard('add'))return;
   document.getElementById('scnm').classList.remove('on');
   const inp=document.getElementById('scanFile');
   inp.value='';inp.click();
 }
-function openCamScan(){
+function openCamScan(){if(!guard('add'))return;
   document.getElementById('scnm').classList.remove('on');
   modal(`<h3>${ic('cam')} المسح بالكاميرا</h3>
     <div id="cam_wrap"><video id="cam_v" class="scan-vid" autoplay playsinline muted></video></div>
