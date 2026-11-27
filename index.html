@@ -399,8 +399,9 @@ const PERMS=[
   ['del','حذف']
 ];
 const roleName=k=>(ROLES.find(r=>r[0]===k)||[0,k])[1];
-let FB={url:'',apiKey:'',token:'',email:'',path:'hospital_hr',connected:false,lastSync:null};
-try{const fc=JSON.parse(localStorage.getItem(FB_KEY));if(fc)Object.assign(FB,fc)}catch(e){}
+const FB_DEF={url:'https://medbox-hr-default-rtdb.firebaseio.com',apiKey:'AIzaSyCeLd-Ki9EaLjADkG7YlTyQY0Bxp-RYHWg',path:'hospital_hr'};
+let FB={url:FB_DEF.url,apiKey:FB_DEF.apiKey,token:'',refreshToken:'',email:'',path:FB_DEF.path,connected:false,lastSync:null};
+try{const fc=JSON.parse(localStorage.getItem(FB_KEY));if(fc){Object.assign(FB,fc);if(!FB.url)FB.url=FB_DEF.url;if(!FB.apiKey)FB.apiKey=FB_DEF.apiKey;if(!FB.path)FB.path=FB_DEF.path}}catch(e){}
 let U={y:now.getFullYear(),m:now.getMonth(),tab:DAYS.findIndex(d=>d[1]===now.getDay()),dept:'all',view:'home',pedit:false,prev:'home',about:false,stab:'users',user:null,cat:null,q:'',sort:'new',sel:null,selMode:false,checked:[],hide:mob(),pc:null,py:now.getFullYear(),pm:now.getMonth(),pid:null,pv:null,pday:null,pwd:null,ptab:'weeks',scope:'all',owd:null,ly:now.getFullYear(),lm:now.getMonth(),lcat:'all',ltab:'records'};
 try{const au=localStorage.getItem(AUTH_KEY);if(au){const f=S.users&&S.users.find(x=>x.id===au);if(f)U.user=f.id}}catch(e){}
 
@@ -466,15 +467,33 @@ function startLiveSync(){
   if(!FB.connected||!FB.url)return;
   _fbPoll=setInterval(()=>{if(document.visibilityState==='visible')pollFirebase()},2000);
 }
+async function refreshFbToken(){
+  if(!FB.refreshToken||!FB.apiKey)return false;
+  try{
+    const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+encodeURIComponent(FB.apiKey),{
+      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(FB.refreshToken)
+    });
+    if(!r.ok)return false;
+    const j=await r.json();
+    if(j.id_token){FB.token=j.id_token;if(j.refresh_token)FB.refreshToken=j.refresh_token;saveFbCfg();return true}
+  }catch(e){}
+  return false;
+}
+async function fbFetch(urlFn,opts){
+  let r=await fetch(urlFn(),opts);
+  if(r.status===401&&await refreshFbToken())r=await fetch(urlFn(),opts);
+  return r;
+}
 async function pollFirebase(){
   if(_fbSaving||_fbTimer||!FB.connected||!FB.url)return;
   const rUrl=fbRevEndpoint();if(!rUrl)return;
   try{
-    const r=await fetch(rUrl,{cache:'no-store'});
+    const r=await fbFetch(fbRevEndpoint,{cache:'no-store'});
     if(!r.ok)return;
     const remoteRev=await r.json();
     if(remoteRev&&remoteRev!==S._rev&&!_fbSaving&&!_fbTimer){
-      const dRes=await fetch(fbEndpoint(),{cache:'no-store'});
+      const dRes=await fbFetch(fbEndpoint,{cache:'no-store'});
       if(!dRes.ok)return;
       const data=await dRes.json();
       if(data&&data.depts&&data.nurses&&data._rev!==S._rev){
@@ -491,7 +510,7 @@ async function syncFromFirebase(){
   if(!url)throw new Error('يرجى إدخال رابط قاعدة بيانات Firebase');
   if(!/^https:\/\//i.test(url))throw new Error('يجب أن يبدأ رابط Firebase بـ https://');
   setSyncUi('busy');
-  const r=await fetch(url,{cache:'no-store'});
+  const r=await fbFetch(fbEndpoint,{cache:'no-store'});
   if(!r.ok){setSyncUi('err');throw new Error('تعذر الاتصال بقاعدة البيانات (رمز '+r.status+')')}
   const data=await r.json();
   FB.connected=true;FB.lastSync=Date.now();saveFbCfg();
@@ -509,7 +528,7 @@ async function syncToFirebase(silent){
   if(!url||!FB.connected)return;
   _fbTimer=null;_fbSaving=true;setSyncUi('busy');
   try{
-    const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
+    const r=await fbFetch(fbEndpoint,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     FB.lastSync=Date.now();saveFbCfg();
     setSyncUi('ok');
@@ -587,6 +606,7 @@ async function doFbLogin(){
       const j=await res.json();
       if(!res.ok)throw new Error((j.error&&j.error.message)||'بيانات الدخول إلى Firebase غير صحيحة');
       FB.token=j.idToken||'';
+      FB.refreshToken=j.refreshToken||'';
       FB.email=email;
       saveFbCfg();
       await syncFromFirebase();
