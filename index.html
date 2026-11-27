@@ -378,10 +378,10 @@ let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.depts)S=seed();
 if(!S.shiftTypes)S.shiftTypes=[...DEF_SHIFTS];
 mig();
-let _fbTimer=null,_fbState='loc';
+let _fbTimer=null,_fbPoll=null,_fbSaving=false,_fbState='loc';
 function setSyncUi(st){_fbState=st}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
-  if(FB&&FB.connected&&FB.url){setSyncUi('busy','جارٍ الرفع…');clearTimeout(_fbTimer);_fbTimer=setTimeout(()=>syncToFirebase(true),250)}};
+const save=()=>{S._rev=Date.now()+'_'+uid();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(FB&&FB.connected&&FB.url){setSyncUi('busy');clearTimeout(_fbTimer);_fbTimer=setTimeout(()=>syncToFirebase(true),200)}};
 const mob=()=>!!(window.matchMedia&&window.matchMedia('(max-width:800px)').matches);
 const now=new Date();
 const FB_KEY='hr_fb_cfg_v1',AUTH_KEY='hr_auth_v1';
@@ -453,13 +453,46 @@ function fbEndpoint(){
   const q=FB.token?`?auth=${encodeURIComponent(FB.token.trim())}`:'';
   return `${base}/${pth}.json${q}`;
 }
+function fbRevEndpoint(){
+  const base=String(FB.url||'').trim().replace(/\/+$/,'');
+  const pth=String(FB.path||'hospital_hr').trim().replace(/^\/+|\/+$/g,'')||'hospital_hr';
+  if(!base)return '';
+  const q=FB.token?`?auth=${encodeURIComponent(FB.token.trim())}`:'';
+  return `${base}/${pth}/_rev.json${q}`;
+}
+function stopLiveSync(){if(_fbPoll){clearInterval(_fbPoll);_fbPoll=null}}
+function startLiveSync(){
+  stopLiveSync();
+  if(!FB.connected||!FB.url)return;
+  _fbPoll=setInterval(()=>{if(document.visibilityState==='visible')pollFirebase()},2000);
+}
+async function pollFirebase(){
+  if(_fbSaving||_fbTimer||!FB.connected||!FB.url)return;
+  const rUrl=fbRevEndpoint();if(!rUrl)return;
+  try{
+    const r=await fetch(rUrl,{cache:'no-store'});
+    if(!r.ok)return;
+    const remoteRev=await r.json();
+    if(remoteRev&&remoteRev!==S._rev&&!_fbSaving&&!_fbTimer){
+      const dRes=await fetch(fbEndpoint(),{cache:'no-store'});
+      if(!dRes.ok)return;
+      const data=await dRes.json();
+      if(data&&data.depts&&data.nurses&&data._rev!==S._rev){
+        S=data;S.sched=S.sched||{};S.shiftTypes=S.shiftTypes||[...DEF_SHIFTS];mig();
+        try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+        if(!document.querySelector('.ov'))render();
+        toast('تم تحديث البيانات تلقائياً');
+      }
+    }
+  }catch(e){}
+}
 async function syncFromFirebase(){
   const url=fbEndpoint();
   if(!url)throw new Error('يرجى إدخال رابط قاعدة بيانات Firebase');
   if(!/^https:\/\//i.test(url))throw new Error('يجب أن يبدأ رابط Firebase بـ https://');
-  setSyncUi('busy','جارٍ التحميل…');
-  const r=await fetch(url);
-  if(!r.ok){setSyncUi('err','خطأ اتصال');throw new Error('تعذر الاتصال بقاعدة البيانات (رمز '+r.status+')')}
+  setSyncUi('busy');
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok){setSyncUi('err');throw new Error('تعذر الاتصال بقاعدة البيانات (رمز '+r.status+')')}
   const data=await r.json();
   FB.connected=true;FB.lastSync=Date.now();saveFbCfg();
   if(data&&data.depts&&data.nurses){
@@ -468,23 +501,30 @@ async function syncFromFirebase(){
   }else if(!data){
     await syncToFirebase(true);
   }
-  setSyncUi('ok','متزامن Firebase');
+  setSyncUi('ok');
+  startLiveSync();
 }
 async function syncToFirebase(silent){
   const url=fbEndpoint();
   if(!url||!FB.connected)return;
-  setSyncUi('busy','جارٍ الرفع…');
+  _fbTimer=null;_fbSaving=true;setSyncUi('busy');
   try{
     const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
     if(!r.ok)throw new Error('HTTP '+r.status);
     FB.lastSync=Date.now();saveFbCfg();
-    setSyncUi('ok','متزامن Firebase');
+    setSyncUi('ok');
     if(!silent)toast('تم رفع وحفظ التعديلات على Firebase بنجاح');
   }catch(err){
-    setSyncUi('err','تعذر الرفع');
+    setSyncUi('err');
     if(!silent)toast('تعذر المزامنة مع Firebase — تم الحفظ محلياً');
-  }
+  }finally{_fbSaving=false}
 }
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&FB.connected)pollFirebase()});
+window.addEventListener('focus',()=>{if(FB.connected)pollFirebase()});
+window.addEventListener('storage',e=>{
+  if(e.key!==KEY||!e.newValue)return;
+  try{const d=JSON.parse(e.newValue);if(d&&d.depts&&d.nurses&&d._rev!==S._rev){S=d;mig();if(!document.querySelector('.ov'))render()}}catch(x){}
+});
 async function manualSync(){
   if(needLogin())return;
   if(!FB.connected||!FB.url){
@@ -598,7 +638,7 @@ async function saveFbConfigModal(){
   }catch(e){er.textContent=e.message||'تعذر الاتصال بـ Firebase'}
 }
 function disconnectFb(){
-  FB.connected=false;FB.token='';saveFbCfg();closeM();render();toast('تم فصل الاتصال عن Firebase');
+  stopLiveSync();FB.connected=false;FB.token='';saveFbCfg();closeM();render();toast('تم فصل الاتصال عن Firebase');
 }
 function doLogin(){
   const un=gv('lg_u').trim().toLowerCase(),pw=gv('lg_p'),er=document.getElementById('lg_err');
