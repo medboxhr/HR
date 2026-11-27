@@ -353,9 +353,9 @@ body.no-del .d .ed.dng,body.no-del #selBtn{display:none!important}
   <input type="file" id="imp" accept=".json" hidden onchange="imp(event)">
 </nav>
 
-<div class="row">
+<div class="row hm">
   <!-- 3) قائمة العرض الجانبية: أقسام المشفى -->
-  <aside class="glass" id="side">
+  <aside class="glass c" id="side">
     <div class="sh" id="sh"><button class="ib sq" id="bT" title="إخفاء / إظهار القائمة الجانبية" aria-label="القائمة الجانبية" onclick="togSide()"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="srt off" id="srt"><button class="ib sq" title="ترتيب" onclick="togSort(event)"><svg class="i" viewBox="0 0 24 24"><path d="M8 5v14m0 0-3-3m3 3 3-3M16 19V5m0 0-3 3m3-3 3 3"/></svg></button><div class="menu" id="sm"></div></div>
       <button class="ib sq off" id="selBtn" title="تحديد / تحديد الكل" aria-label="تحديد أو تحديد الكل" onclick="togSelectMode()"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></button>
@@ -467,7 +467,7 @@ const FB_KEY='hr_fb_cfg_v1',AUTH_KEY='hr_auth_v1';
 const FB_DEF={url:'https://medbox-hr-default-rtdb.firebaseio.com',apiKey:'AIzaSyCeLd-Ki9EaLjADkG7YlTyQY0Bxp-RYHWg',path:'hospital_hr'};
 let FB={url:FB_DEF.url,apiKey:FB_DEF.apiKey,token:'',refreshToken:'',email:'',path:FB_DEF.path,connected:false,lastSync:null};
 try{const fc=JSON.parse(localStorage.getItem(FB_KEY));if(fc){Object.assign(FB,fc);if(!FB.url)FB.url=FB_DEF.url;if(!FB.apiKey)FB.apiKey=FB_DEF.apiKey;if(!FB.path)FB.path=FB_DEF.path}}catch(e){}
-let U={y:now.getFullYear(),m:now.getMonth(),tab:DAYS.findIndex(d=>d[1]===now.getDay()),dept:'all',view:'home',pedit:false,prev:'home',about:false,stab:'users',user:null,cat:null,q:'',sort:'new',sel:null,selMode:false,checked:[],hide:mob(),pc:null,py:now.getFullYear(),pm:now.getMonth(),pid:null,pv:null,pday:null,pwd:null,ptab:'weeks',scope:'all',owd:null,ly:now.getFullYear(),lm:now.getMonth(),lcat:'all',ltab:'records',rtab:'pending',hy:now.getFullYear(),hm:now.getMonth()};
+let U={y:now.getFullYear(),m:now.getMonth(),tab:DAYS.findIndex(d=>d[1]===now.getDay()),dept:'all',view:'home',pedit:false,prev:'home',about:false,stab:'users',user:null,cat:null,q:'',sort:'new',sel:null,selMode:false,checked:[],hide:true,pc:null,py:now.getFullYear(),pm:now.getMonth(),pid:null,pv:null,pday:null,pwd:null,ptab:'weeks',scope:'all',owd:null,ly:now.getFullYear(),lm:now.getMonth(),lcat:'all',ltab:'records',rtab:'pending',hy:now.getFullYear(),hm:now.getMonth()};
 try{const au=localStorage.getItem(AUTH_KEY);if(au){const f=S.users&&S.users.find(x=>x.id===au);if(f)U.user=f.id}}catch(e){}
 
 function mv(k){U.m+=k;if(U.m>11){U.m=0;U.y++}if(U.m<0){U.m=11;U.y--}render()}
@@ -507,7 +507,14 @@ function mig(){S.shiftTypes=S.shiftTypes||[...DEF_SHIFTS];DEF_SHIFTS.forEach(t=>
   S.seq=S.seq||0;S.nurses.forEach((n,i)=>{n.cat=n.cat||'nursing';if(!n.no)n.no=++S.seq;if(!n.ts)n.ts=Date.now()-(S.nurses.length-i)*1000})}
 function needLogin(){if(curUser())return false;toast('يرجى تسجيل الدخول أولاً للوصول إلى البيانات');return true}
 function setView(v){if(v!=='home'&&needLogin())return;if(v==='settings'&&U.view!=='settings')U.prev=U.view;if(v!=='records'){U.selMode=false;U.checked=[]}U.view=v;U.about=false;if(v==='settings')U.hide=false;else if((v==='records'||v==='programs')&&mob())U.hide=false;render()}
-function openPrograms(){if(needLogin())return;setView('programs');U.hide=false;render()}
+function openPrograms(){
+  if(needLogin())return;
+  U.pv=null;U.pid=null;U.pedit=false;
+  if(isEmpOnly()){const mc=myEmpCat(),mp=PROGS.find(c=>c[2]===mc);if(mp)U.pc=mp[0]}
+  setView('programs');
+  U.hide=mob()&&isEmpOnly()&&!!U.pc;
+  render();
+}
 function openLeaves(cat,tab){if(needLogin())return;if(cat)U.lcat=cat;if(tab)U.ltab=tab;setView('leaves');U.hide=false;render()}
 const curUser=()=>U.user?(S.users||[]).find(x=>x.id===U.user)||null:null;
 function curEmp(){const u=curUser();if(!u)return null;return u.empId?S.nurses.find(x=>x.id===u.empId)||null:null}
@@ -1452,7 +1459,7 @@ function openProg(id,ed){
   U.pedit=!!ed;
   const p=S.programs.find(x=>x.id===id);if(!p)return;
   U.pc=p.cat;U.py=p.y;U.pm=p.m;U.pid=id;U.pv=id;U.ptab='weeks';
-  const t=new Date(),k=(t.getFullYear()===p.y&&t.getMonth()===p.m)?dk(t):dk(new Date(p.y,p.m,1));U.pday=k;U.pwd=dayName(pdate(k));render();
+  const t=new Date(),k=(t.getFullYear()===p.y&&t.getMonth()===p.m)?dk(t):dk(new Date(p.y,p.m,1));U.pday=k;U.pwd=dayName(pdate(k));if(mob())U.hide=true;render();
 }
 function closeProg(){U.pv=null;render()}
 function selProg(id){const p=S.programs.find(x=>x.id===id);U.py=p.y;U.pm=p.m;U.pid=id;U.pv=null;render()}
@@ -1468,7 +1475,7 @@ function progHead(){
   return `<select class="hs" onchange="U.py=+this.value;U.pid=null;U.pv=null;render()">${ys.map(y=>`<option value="${y}" ${y===U.py?'selected':''}>${ar(y)}</option>`).join('')}</select>
    <select class="hs" onchange="U.pm=+this.value;U.pid=null;U.pv=null;render()">${MONTHS.map((m,i)=>`<option value="${i}" ${i===U.pm?'selected':''}>${m}</option>`).join('')}</select>
    <span style="flex:1"></span>
-   <button class="ib pri" onclick="addProg()">${ic('plus')} إنشاء برنامج جديد</button>`;
+   ${can('prog','add')?`<button class="ib pri" onclick="addProg()">${ic('plus')} إنشاء برنامج جديد</button>`:""}`;
 }
 function weeksHtml(p){
   const n=new Date(p.y,p.m+1,0).getDate(),rows=[];let cur=null;
@@ -1489,7 +1496,7 @@ function progBody(){
   const P=S.programs.find(x=>x.id===U.pv);if(P)return progGrid(P);
   const nm=PROGS.find(c=>c[0]===U.pc)[1],cs=selP(),l=S.programs.filter(x=>x.cat===U.pc).sort((a,b)=>b.y-a.y||b.m-a.m||b.no-a.no);
   return `<div class="blk"><div class="bh">${ic('cal')} برامج دوام ${nm} (${ar(l.length)})</div>`+
-   (l.length?`<div class="pgl">${l.map(x=>`<div class="pg ${cs&&cs.id===x.id?'on':''}" onclick="openProg('${x.id}')"><span><b>برنامج رقم ${ar(x.no)}</b> · ${MONTHS[x.m]} ${ar(x.y)}<br><em class="bdg">${noteOf(x)}</em></span><button class="ib sm" title="تعديل" onclick="event.stopPropagation();openProg('${x.id}',1)">${ic('edit')}</button><button class="ib sm dng" title="حذف" onclick="event.stopPropagation();delProg('${x.id}')">${ic('trash')}</button></div>`).join('')}</div>`
+   (l.length?`<div class="pgl">${l.map(x=>`<div class="pg ${cs&&cs.id===x.id?'on':''}" onclick="openProg('${x.id}')"><span><b>برنامج رقم ${ar(x.no)}</b> · ${MONTHS[x.m]} ${ar(x.y)}<br><em class="bdg">${noteOf(x)}</em></span>${can('prog','edit')?`<button class="ib sm" title="تعديل" onclick="event.stopPropagation();openProg('${x.id}',1)">${ic('edit')}</button>`:''}${can('prog','del')?`<button class="ib sm dng" title="حذف" onclick="event.stopPropagation();delProg('${x.id}')">${ic('trash')}</button>`:''}</div>`).join('')}</div>`
    :'<div class="emp">لا توجد برامج مضافة لهذا الكادر. اختر السنة والشهر ثم اضغط «إنشاء برنامج جديد».</div>')+'</div>';
 }
 
@@ -1832,7 +1839,7 @@ function sumTab(P){
   const tot={h:0,sh:0};
   const rows=list.map(x=>{const o=R[x.id]||z,ev=evalAnnualLeaves(x.id,P.y),lt=(o.lv.paid||0)+(o.lv.unpaid||0)+(o.lv.paidsub||0)+(o.lv.unpaidsub||0)+(o.lv.absence||0);tot.h+=o.h;tot.sh+=o.sh;
     return `<tr><td>${esc(x.name)}${ev.alert?' <em class="bdg dng" title="بلغ أو تجاوز الحد السنوي بلا أجر">⚠ تنبيه حد</em>':''}</td><td><b>${fH(o.h)}</b></td><td>${ar(o.sh)}</td><td>${ar(o.days.size)}</td>${LV.map(v=>`<td>${v[0]==='delay'?(o.lv.delay?`${ar(o.lv.delay)} (${ar(o.delayMins)} د)`:'—'):(o.lv[v[0]]?ar(o.lv[v[0]]):'—')}</td>`).join('')}<td><b>${lt?ar(lt):'—'}</b></td></tr>`}).join('');
-  return `<div class="dbar"><span class="hint" style="padding:0">مرتبط بنظام الإجازات السنوي: تُحسب ساعات البديل عند وجوده، وتُخصم دقائق التأخير، وتُطبَّق الحدود السنوية والتحويل التلقائي.</span><span style="flex:1"></span><button class="ib sm" onclick="U.ly=${P.y};U.lm=${P.m};openLeaves('${rc}','balances')">${ic('gear')} الأرصدة والحدود</button><button class="ib pri sm edt" onclick="leaveForm()">${ic('plus')} تسجيل إجازة</button></div>
+  return `<div class="dbar"><span class="hint" style="padding:0">مرتبط بنظام الإجازات السنوي: تُحسب ساعات البديل عند وجوده، وتُخصم دقائق التأخير، وتُطبَّق الحدود السنوية والتحويل التلقائي.</span><span style="flex:1"></span>${!isEmpOnly()?`<button class="ib sm" onclick="U.ly=${P.y};U.lm=${P.m};openLeaves('${rc}','balances')">${ic('gear')} الأرصدة والحدود</button>`:''}<button class="ib pri sm edt" onclick="leaveForm()">${ic('plus')} تسجيل إجازة</button></div>
    <div class="xs sum"><table style="min-width:960px"><thead><tr><th class="f">العنصر</th><th>ساعات الشهر</th><th>المناوبات</th><th>أيام العمل</th>${LV.map(v=>`<th>${v[1]}</th>`).join('')}<th>مجموع الإجازة/الغياب</th></tr></thead><tbody>${rows||'<tr><td colspan="11" style="padding:20px">لا توجد بيانات بعد.</td></tr>'}</tbody>${rows?`<tfoot><tr><td><b>الإجمالي</b></td><td><b>${fH(tot.h)}</b></td><td><b>${ar(tot.sh)}</b></td><td colspan="8"></td></tr></tfoot>`:''}</table></div>
    <div class="bh" style="margin-top:6px">${ic('cal')} الإجازات والغيابات في هذا الشهر (${ar(lv.length)})</div>`+
    (lv.length?`<div class="pgl">${lv.map(l=>{const ev=evalAnnualLeaves(l.emp,P.y),bl=ev.byLeave[l.id]||{convToUnpaid:0,convToAbsence:0};
